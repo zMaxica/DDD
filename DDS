@@ -1,8 +1,6 @@
 local Players = game:GetService("Players")
-local Workspace = game:GetService("Workspace")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local TeleportService = game:GetService("TeleportService")
-local HttpService = game:GetService("HttpService")
+local Workspace = game:GetService("Workspace")
 
 local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
@@ -10,86 +8,14 @@ local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
 
 local collectFolder = Workspace:FindFirstChild("Collect")
 
--- 🏠 เช็คแมพก่อน
-local farmMapId = 86392425558311
-local safeZoneMapId = 133649758958568
-local currentMapId = game.PlaceId
-
-if currentMapId == safeZoneMapId then
-    -- 🎯 แมพที่วาร์ปมา → สร้างปาร์ตี้ Hard Mode
-    print("🚀 อยู่ในแมพ Safe Zone! กำลังสร้างปาร์ตี้ Hard Mode...")
-
-    local args1 = { [1] = "createParty", [2] = "zMaxikax's Party", [3] = 4 }
-    ReplicatedStorage.PartySystemREHard:FireServer(unpack(args1))
-
-    task.wait(1)
-
-    local args2 = { [1] = "startParty", [2] = "zMaxikax's Party" }
-    ReplicatedStorage.PartySystemREHard:FireServer(unpack(args2))
-
-    print("🎉 ปาร์ตี้ Hard Mode ถูกสร้างและเริ่มต้นแล้ว! หยุดสคริปต์")
-    return
-elseif currentMapId ~= farmMapId then
-    warn("❌ ไม่ใช่แมพที่ถูกต้อง! หยุดการทำงานของสคริปต์")
-    return
-end
-
-print("✅ อยู่ในแมพฟาร์ม! เริ่มเช็คผู้เล่น...")
-
--- 📡 ตั้งค่าการตรวจจับผู้เล่น
-local detectionRadius = 2500 -- ระยะการตรวจจับ
-local safeZonePlaceID = 133649758958568 -- Place ID ที่ต้องการวาร์ปไป
-local safePlayers = { "testerloadsss", "DarkFalcon_Z", "zMaxica", "testerloadxxx" } -- รายชื่อที่ไม่ต้องวาร์ปหนี
-
--- 📌 ฟังก์ชันวาร์ปผู้เล่น
-local function teleportPlayer(targetPlayer)
-    TeleportService:Teleport(safeZonePlaceID, targetPlayer)
-end
-
--- 🚨 ฟังก์ชันส่ง Discord Webhook
-local function sendDiscordAlert()
-    local OSTime = os.time()
-    local Time = os.date('!*t', OSTime)
-    local Content = 'Found a player, teleporting to a safe zone!'
-    local Embed = {
-        title = '🚨 Nearby Player Detected!',
-        color = 99999,
-        footer = { text = game.JobId },
-        author = { name = 'ROBLOX', url = 'https://www.roblox.com/' },
-        fields = { { name = 'Teleporting...', value = 'Player is now moving to a safer place.' } },
-        timestamp = string.format('%d-%d-%dT%02d:%02d:%02dZ', Time.year, Time.month, Time.day, Time.hour, Time.min, Time.sec),
-    }
-    
-    (syn and syn.request or http_request) {
-        Url = 'https://discord.com/api/webhooks/1120037043200856174/64TZOaooeaqUMb5xqDAOKxODppDYATkNhGcLPtNvB5u6D1Po_vxepEZGqeCQiOHA9Sib',
-        Method = 'POST',
-        Headers = { ['Content-Type'] = 'application/json' },
-        Body = HttpService:JSONEncode({ content = Content, embeds = { Embed } }),
-    }
-end
-
--- 🔎 เช็คผู้เล่นก่อนเริ่มฟาร์ม
-for _, otherPlayer in pairs(Players:GetPlayers()) do
-    if otherPlayer ~= player and not table.find(safePlayers, otherPlayer.Name)
-        and otherPlayer.Character and otherPlayer.Character:FindFirstChild("HumanoidRootPart") then
-        
-        local otherCharacter = otherPlayer.Character
-        local distance = (character.HumanoidRootPart.Position - otherCharacter.HumanoidRootPart.Position).Magnitude
-        
-        if distance <= detectionRadius then
-            warn("🚨 พบผู้เล่นใกล้เคียง! กำลังวาร์ปไปยัง Safe Zone...")
-            sendDiscordAlert()
-            teleportPlayer(player)
-            return -- หยุดสคริปต์ทันที
-        end
+-- 🔄 ฟังก์ชันฟาร์ม
+local function startFarming()
+    if not collectFolder then
+        warn("❌ ไม่พบโฟลเดอร์ Collect! หยุดการทำงานของสคริปต์")
+        return
     end
-end
 
-print("✅ ไม่พบผู้เล่นอื่น! เริ่มฟาร์ม...")
-
--- 🔄 เริ่มการฟาร์ม
-if collectFolder then
-    print("📍 พบโฟลเดอร์ Collect! เริ่มหาเป้าหมาย...")
+    print("📍 เริ่มการฟาร์ม...")
 
     while true do
         local foundPart = false
@@ -113,29 +39,26 @@ if collectFolder then
         if not foundPart then
             task.wait(0.5)
         end
+
+        -- 📌 ตรวจสอบว่าพบบอสหรือไม่ ถ้าพบให้หยุดฟาร์ม
+        if collectFolder:FindFirstChild("32") then
+            print("🚨 พบบอส! หยุดการฟาร์ม...")
+            break
+        end
     end
-else
-    warn("❌ ไม่พบโฟลเดอร์ Collect!")
+
+    -- 🛑 ฟังก์ชันฟาร์มจบลงแล้ว
+    print("✅ หยุดฟาร์มและตรวจสอบบอส...")
 end
 
-local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Workspace = game:GetService("Workspace")
-
-local player = Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-
--- ฟังก์ชันตรวจสอบบอสและสร้างปาร์ตี้
+-- 🏆 ฟังก์ชันตรวจสอบบอสและสร้างปาร์ตี้
 local function checkBossAndParty()
-    local collectFolder = Workspace:FindFirstChild("Collect")
     if not collectFolder then
         warn("❌ ไม่พบโฟลเดอร์ Collect!")
         return
     end
 
-    -- หาบอสที่ BasePart ชื่อ "32"
     local boss = collectFolder:FindFirstChild("32")
-
     if boss then
         print("✅ พบบอส! กำลังตรวจสอบว่าบอสตายหรือยัง...")
 
@@ -161,47 +84,12 @@ local function checkBossAndParty()
             end
         end
     else
-        print("❌ ยังไม่พบบอส! กำลังหาต่อไป...")
+        print("❌ ยังไม่พบบอส! จะเช็คอีกครั้งใน 5 วินาที...")
         task.wait(5)
         checkBossAndParty()
     end
 end
 
--- ฟังก์ชันตรวจสอบจำนวน BasePart ตอนเริ่มต้น
-local function checkBaseParts()
-    local collectFolder = Workspace:FindFirstChild("Collect")
-    if not collectFolder then
-        warn("❌ ไม่พบโฟลเดอร์ Collect!")
-        return
-    end
-
-    local initialCount = #collectFolder:GetChildren()  -- นับ BasePart ตอนเริ่ม
-    print("📊 จำนวน BasePart ตอนเริ่ม:", initialCount)
-
-    task.wait(10)  -- รอ 10 วินาที
-
-    local currentCount = #collectFolder:GetChildren()  -- นับใหม่หลังจาก 10 วินาที
-    print("📊 จำนวน BasePart ปัจจุบัน:", currentCount)
-
-    if currentCount < initialCount then
-        print("✅ จำนวน BasePart ลดลง! เริ่มตรวจสอบบอส...")
-        checkBossAndParty()
-    else
-        print("⏳ จำนวน BasePart ไม่ลดลง! สร้างปาร์ตี้ทันที...")
-
-        -- สร้างปาร์ตี้
-        local args1 = { [1] = "createParty", [2] = "zMaxikax's Party", [3] = 4 }
-        ReplicatedStorage.PartySystemRE:FireServer(unpack(args1))
-
-        task.wait(1)
-
-        -- เริ่มปาร์ตี้
-        local args2 = { [1] = "startParty", [2] = "zMaxikax's Party" }
-        ReplicatedStorage.PartySystemRE:FireServer(unpack(args2))
-
-        print("🎉 ปาร์ตี้ถูกสร้างและเริ่มต้นแล้ว!")
-    end
-end
-
--- เริ่มการตรวจสอบ
-checkBaseParts()
+-- 🏁 เริ่มฟังก์ชันทั้งสองพร้อมกัน
+task.spawn(startFarming) -- ฟาร์ม
+task.spawn(checkBossAndParty) -- เช็คบอส
